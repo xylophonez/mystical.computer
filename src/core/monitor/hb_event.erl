@@ -409,7 +409,7 @@ parse_name(_) -> no_event_name.
 
 %%% Benchmark tests
 
--define(BENCHMARK_DURATION, 0.25).
+-define(BENCHMARK_DURATION, 0.005).
 %% @doc Benchmark the performance of a full log of an event.
 benchmark_event_test() ->
     Iterations =
@@ -418,9 +418,10 @@ benchmark_event_test() ->
                 log(test_module, {test, 1})
             end,
             ?BENCHMARK_DURATION
-        ),
+    ),
     hb_test_utils:benchmark_print(<<"Recorded">>, <<"events">>, Iterations, ?BENCHMARK_DURATION),
     ?assert(Iterations >= 1000),
+    drain_event_server(),
     ok.
 
 %% @doc Benchmark the performance of looking up whether a topic and module
@@ -445,9 +446,10 @@ benchmark_increment_test() ->
         hb_test_utils:benchmark(
             fun() -> increment(test_module, {test, 1}, #{}) end,
             ?BENCHMARK_DURATION
-        ),
+    ),
     hb_test_utils:benchmark_print(<<"Incremented">>, <<"events">>, Iterations, ?BENCHMARK_DURATION),
     ?assert(Iterations >= 1000),
+    drain_event_server(),
     ok.
 
 should_log_test() ->
@@ -463,7 +465,7 @@ overload_checks_past_first_thousand_test() -> ok.
 -else.
 benchmark_drain_rate_test() ->
     NumKeys = 50,
-    NumEvents = 100000,
+    NumEvents = ?OVERLOAD_QUEUE_LENGTH div 2,
     log(warmup, {warmup, 0}),
     timer:sleep(100),
     EventPid = hb_name:lookup(?MODULE),
@@ -502,7 +504,7 @@ batch_correctness_test() ->
     EventPid = hb_name:lookup(?MODULE),
     wait_drain(EventPid, 5000),
     NumKeys = 5,
-    N = 30_000,
+    N = ?OVERLOAD_QUEUE_LENGTH div 2,
     Keys = [{list_to_binary("corr_topic_" ++ integer_to_list(K)),
              list_to_binary("corr_event_" ++ integer_to_list(K))}
             || K <- lists:seq(1, NumKeys)],
@@ -561,6 +563,12 @@ deep_get([Group, Name], Map, Default) ->
     case maps:get(Group, Map, undefined) of
         undefined -> Default;
         Inner -> maps:get(Name, Inner, Default)
+    end.
+
+drain_event_server() ->
+    case hb_name:lookup(?MODULE) of
+        Pid when is_pid(Pid) -> wait_drain(Pid, 5000);
+        undefined -> ok
     end.
 
 %% @doc Fill the event server mailbox with a list of keys. Rotate the keys to

@@ -1,0 +1,16 @@
+bundler.mystical.computer {
+    encode zstd gzip
+
+    log {
+        output file /var/log/caddy/bundler.mystical.computer.access.log
+        format console
+    }
+
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    reverse_proxy 127.0.0.1:28734
+}

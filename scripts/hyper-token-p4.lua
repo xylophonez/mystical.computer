@@ -63,3 +63,24 @@ function charge(base, assignment)
     ao.event("debug_charge", { "Charge processed: ", { balances = base.balance } })
     return "ok", base
 end
+
+-- The base hyper-token script dispatches only on `action`, while the P4 ledger
+-- adapter submits admin charges as `path=charge` messages. Keep the original
+-- token dispatcher for every other message and intercept only charge requests.
+local hyper_token_compute = compute
+
+local function normalize_dispatch(value)
+    local dispatch = string.lower(value or "")
+    return dispatch:gsub("^/+", "")
+end
+
+function compute(base, assignment)
+    local body = assignment.body or {}
+    local dispatch = normalize_dispatch(body.action or body.path or assignment.path)
+
+    if dispatch == "charge" then
+        return charge(base, assignment)
+    end
+
+    return hyper_token_compute(base, assignment)
+end

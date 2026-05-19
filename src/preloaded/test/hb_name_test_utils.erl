@@ -48,6 +48,7 @@ manifest_opts() ->
             <<"item-oLnQY-EgiYRg9XyO7yZ_mC0Ehy7TFR3UiDhFvxcohC4.bin">>
         ]
     ),
+    hb_test_utils:preload(BaseOpts, <<"test/arbundles.js/ans104-item-ed25519.bin">>),
     BaseOpts#{
         <<"on">> =>
             #{

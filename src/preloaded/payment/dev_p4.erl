@@ -216,7 +216,7 @@ response(State, RawResponse, NodeMsg) ->
                     % that is performing the charge, not the user.
                     LedgerReq =
                         hb_message:commit(
-                            #{
+                            maps:merge(#{
                                 <<"path">> => <<"charge">>,
                                 <<"quantity">> => Price,
                                 <<"account">> =>
@@ -235,9 +235,9 @@ response(State, RawResponse, NodeMsg) ->
                                                 Operator->
                                                     hb_util:human_id(Operator)
                                             end
-                                    end,
-                                <<"request">> => Request
+                                    end
                             },
+                            charge_metadata(Request, NodeMsg)),
                             NodeMsg
                         ),
                     ?event(payment,
@@ -320,6 +320,28 @@ is_chargable_req(Req, NodeMsg) ->
         _ -> false
     end.
 
+charge_metadata(Request, NodeMsg) ->
+    %% Do not embed the full signed user request in the admin charge. The
+    %% process ledger validates charge messages as single-signed admin requests.
+    maps:filter(
+        fun(_Key, Value) -> Value =/= undefined end,
+        #{
+            <<"request-id">> => request_id(Request, NodeMsg),
+            <<"request-path">> =>
+                hb_maps:get(<<"path">>, Request, undefined, NodeMsg)
+        }
+    ).
+
+request_id(Request, NodeMsg) ->
+    try
+        case hb_message:id(Request, all, NodeMsg) of
+            ID when ?IS_ID(ID) -> hb_util:human_id(ID);
+            ID -> hb_util:bin(ID)
+        end
+    catch
+        _:_ -> undefined
+    end.
+
 %%% Tests
 
 test_opts(Opts) ->
@@ -339,6 +361,18 @@ test_opts(Opts, PricingDev, LedgerDev) ->
             <<"response">> => ProcessorMsg
         }
     }.
+
+charge_metadata_omits_signed_request_test() ->
+    Wallet = ar_wallet:new(),
+    Request =
+        hb_message:commit(
+            #{ <<"path">> => <<"/paid-route">> },
+            #{ <<"priv-wallet">> => Wallet }
+        ),
+    Metadata = charge_metadata(Request, #{}),
+    ?assert(maps:is_key(<<"request-id">>, Metadata)),
+    ?assertEqual(<<"/paid-route">>, maps:get(<<"request-path">>, Metadata)),
+    ?assertNot(maps:is_key(<<"request">>, Metadata)).
 
 %% @doc Simple test of p4's capabilities with the `faff@1.0' device.
 faff_test() ->

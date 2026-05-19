@@ -1,0 +1,21 @@
+[Unit]
+Description=HyperBEAM open bundler node
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/hyperbeam-bundler
+Environment=HOME=/root
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=HB_ERL_SNAME=hb_bundler_28734
+Environment=HB_CONFIG=/etc/hyperbeam-bundler/config.flat,/etc/hyperbeam-bundler/config.json
+ExecStart=/opt/hyperbeam-bundler/bin/hb foreground
+Restart=always
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=45
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target

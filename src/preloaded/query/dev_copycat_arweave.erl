@@ -1037,7 +1037,10 @@ negative_resolved_height_test_parallel() ->
         hb_mock_server:stop(MockHandle)
     end.
 
-negative_from_index_test_parallel() ->
+negative_from_index_test_parallel_() ->
+    {timeout, 60, fun negative_from_index/0}.
+
+negative_from_index() ->
     {_TestStore, _StoreOpts, Opts} = setup_index_opts(),
     {ok, Tip} = latest_height(Opts),
     StopBlock = 1827942,

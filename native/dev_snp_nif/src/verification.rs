@@ -1,12 +1,12 @@
-use rustler::{Binary, Encoder, Env, NifResult, Term};
-use rustler::types::atom::{self, ok};
-use serde_json::Value;
-use serde::Deserialize;
-use sev::certs::snp::{ecdsa::Signature, Chain, Verifiable};
-use sev::firmware::host::TcbVersion;
-use sev::firmware::guest::{AttestationReport, GuestPolicy, PlatformInfo};
 use crate::helpers::{request_cert_chain, request_vcek};
 use crate::logging::log_message;
+use rustler::types::atom::{self, ok};
+use rustler::{Binary, Encoder, Env, NifResult, Term};
+use serde::Deserialize;
+use serde_json::Value;
+use sev::certs::snp::{ecdsa::Signature, Chain, Verifiable};
+use sev::firmware::guest::{AttestationReport, GuestPolicy, PlatformInfo};
+use sev::firmware::host::TcbVersion;
 
 /// Verifies whether the measurement in the attestation report matches the expected measurement.
 ///
@@ -84,7 +84,6 @@ fn verify_measurement<'a>(
     }
 }
 
-
 /// Verifies the signature of an attestation report.
 ///
 /// # Arguments
@@ -96,10 +95,7 @@ fn verify_measurement<'a>(
 /// - `ok` atom and a success message if the signature is valid.
 /// - `error` atom and an error message if the signature verification fails.
 #[rustler::nif]
-fn verify_signature<'a>(
-    env: Env<'a>,
-    report: Binary<'a>,
-) ->  NifResult<Term<'a>>  {
+fn verify_signature<'a>(env: Env<'a>, report: Binary<'a>) -> NifResult<Term<'a>> {
     // log_message("INFO", file!(), line!(), "Verifying signature...");
 
     // Step 1: Parse the report JSON into a serde Value object.
@@ -278,8 +274,34 @@ fn verify_signature<'a>(
     let tcb_version = attestation_report.current_tcb;
 
     // Step 4: Request the certificate chain and VCEK.
-    let ca = request_cert_chain("Milan").unwrap();
-    let vcek = request_vcek(chip_id_array, tcb_version).unwrap();
+    let ca = match request_cert_chain("Milan") {
+        Ok(ca) => ca,
+        Err(e) => {
+            log_message(
+                "ERROR",
+                file!(),
+                line!(),
+                &format!("Certificate chain request failed: {:?}", e),
+            );
+            return Ok((
+                atom::error(),
+                format!("Certificate chain request failed: {:?}", e),
+            )
+                .encode(env));
+        }
+    };
+    let vcek = match request_vcek(chip_id_array, tcb_version) {
+        Ok(vcek) => vcek,
+        Err(e) => {
+            log_message(
+                "ERROR",
+                file!(),
+                line!(),
+                &format!("VCEK request failed: {:?}", e),
+            );
+            return Ok((atom::error(), format!("VCEK request failed: {:?}", e)).encode(env));
+        }
+    };
 
     // Step 5: Verify the certificate chain.
     if let Err(e) = ca.verify() {
@@ -302,7 +324,11 @@ fn verify_signature<'a>(
             line!(),
             &format!("Attestation report verification failed: {:?}", e),
         );
-        return Ok((atom::error(), format!("Report verification failed: {:?}", e)).encode(env));
+        return Ok((
+            atom::error(),
+            format!("Report verification failed: {:?}", e),
+        )
+            .encode(env));
     }
 
     //log_message("INFO", file!(), line!(), "Signature verification successful.");

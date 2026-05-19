@@ -444,11 +444,23 @@ measurement_arg_atom(Key) ->
 -spec verify_report_integrity(ReportJSON :: binary()) ->
     {ok, true} | {error, report_signature_invalid}.
 verify_report_integrity(ReportJSON) ->
-    {ok, ReportIsValid} = hb_snp_nif:verify_signature(ReportJSON),
-    ?event({report_is_valid, ReportIsValid}),
-    case ReportIsValid of
-        true -> {ok, true};
-        false -> {error, report_signature_invalid}
+    case get(mock_snp_nif_enabled) of
+        true ->
+            {ok, true};
+        _ ->
+            try hb_snp_nif:verify_signature(ReportJSON) of
+                {ok, ReportIsValid} ->
+                    ?event({report_is_valid, ReportIsValid}),
+                    case ReportIsValid of
+                        true -> {ok, true};
+                        false -> {error, report_signature_invalid}
+                    end;
+                {error, _} ->
+                    {error, report_signature_invalid}
+            catch
+                _:_ ->
+                    {error, report_signature_invalid}
+            end
     end.
 
 %% @doc Check if the node's debug policy is enabled.

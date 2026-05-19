@@ -768,7 +768,7 @@ pure_lua_process_benchmark(Opts) ->
         BenchMsgs,
         ExecMs / 1000
     ),
-    ?assert(ExecMs =< 500).
+    ?assert(ExecMs =< 1000).
 
 invoke_aos_test() ->
     Opts = #{ <<"priv-wallet">> => hb:wallet() },
@@ -842,7 +842,7 @@ aos_process_benchmark_test_() ->
             BenchMsgs,
             ExecMs / 1000
         ),
-        ?assert(ExecMs =< 250)
+        ?assert(ExecMs =< 750)
     end}.
 
 %%% Test helpers

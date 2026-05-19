@@ -24,6 +24,7 @@ rebar3.crashdump
 /venv
 
 *.json
+src/preloaded/mystical/priv/
 !.vscode/*
 
 *.bin

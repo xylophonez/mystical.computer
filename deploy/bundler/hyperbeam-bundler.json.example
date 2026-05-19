@@ -1,0 +1,9 @@
+{
+  "port": 28734,
+  "node-host": "https://bundler.mystical.computer",
+  "bundler-ans104": "http://127.0.0.1:28734",
+  "bundler-max-items": 1,
+  "bundler-max-bundle-dispatch-delay": 2000,
+  "await-inprogress": false,
+  "http-client-prefer-ipv4": true
+}

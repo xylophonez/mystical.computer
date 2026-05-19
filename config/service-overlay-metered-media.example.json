@@ -1,0 +1,33 @@
+{
+  "service-overlay": true,
+  "simple-pay-price": 0,
+  "service-overlay-pricing-routes": [
+    {
+      "template": "/~whisper@1.0/.*",
+      "pricing-device": "metering@1.0"
+    },
+    {
+      "template": "/~ffmpeg-audio@1.0/.*",
+      "pricing-device": "metering@1.0"
+    }
+  ],
+  "metering-rates": {
+    "media-input-bytes": 1,
+    "whisper-input-bytes": 0,
+    "ffmpeg-input-bytes": 0,
+    "beam-reductions": 0
+  },
+  "on": {
+    "start": [
+      {
+        "device": "service-overlay@1.0",
+        "path": "start"
+      }
+    ],
+    "request": [
+      {
+        "device": "manifest@1.0"
+      }
+    ]
+  }
+}

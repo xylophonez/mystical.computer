@@ -1,0 +1,6 @@
+port: 28734
+node_host: https://bundler.mystical.computer
+priv_key_location: /etc/hyperbeam-bundler/wallet.json
+bundler_ans104: http://127.0.0.1:28734
+await_inprogress: false
+http_client_prefer_ipv4: true

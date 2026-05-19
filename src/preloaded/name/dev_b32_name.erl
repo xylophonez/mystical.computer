@@ -303,6 +303,8 @@ subdomain(ID, Opts) ->
 manifest_opts() ->
     (hb_name_test_utils:manifest_opts())#{
         <<"port">> => 0,
+        <<"http-retry">> => 2,
+        <<"http-retry-time">> => 100,
         <<"http-client-hackney-recv-timeout">> => 30_000,
         <<"name-resolvers">> => [#{ <<"device">> => <<"b32-name@1.0">> }],
         <<"on">> =>

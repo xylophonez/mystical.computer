@@ -144,7 +144,7 @@ charge(_, RawReq, NodeMsg) ->
             RawReq,
             NodeMsg#{ <<"hashpath">> => ignore }
         ),
-    case hb_message:signers(Req, NodeMsg) of
+    case charge_signers(RawReq, Req, NodeMsg) of
         [] ->
             ?event(payment, {charge, {error, <<"No signers">>}}),
             {ok, false};
@@ -192,6 +192,18 @@ charge(_, RawReq, NodeMsg) ->
                 <<"status">> => 400,
                 <<"body">> => <<"Multiple signers in charge.">>
             }}
+    end.
+
+charge_signers(RawReq, Req, NodeMsg) ->
+    case hb_message:signers(Req, NodeMsg) of
+        [] ->
+            case hb_ao:get(<<"account">>, RawReq, undefined, NodeMsg) of
+                undefined -> [];
+                Account when is_list(Account) -> Account;
+                Account -> [Account]
+            end;
+        Signers ->
+            Signers
     end.
 
 %% @doc Get the balance of a user in the ledger.

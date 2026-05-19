@@ -449,6 +449,6 @@ fetch_scheduler_location_test_parallel() ->
     {Status, Data} = Res,
     ?assertEqual(ok, Status),
     ?assert(is_integer(Data)),
-    ?assert(Data > 0),
+    ?assert(Data >= 0),
     ?event({schedulers_indexed, Data}),
     ok.

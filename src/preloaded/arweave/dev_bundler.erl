@@ -914,7 +914,7 @@ complete_task_sequence_test_parallel() ->
         ?assertEqual(1, length(TXs)),
         Proofs = hb_mock_server:get_requests(chunk, 1, ServerHandle),
         ?assertEqual(1, length(Proofs)),
-        State = get_state(Opts),
+        State = wait_for_complete_task_sequence(Opts, 20),
         ?assertNotEqual(undefined, State),
         ?assertNotEqual(timeout, State),
         Workers = State#state.workers,
@@ -931,6 +931,37 @@ complete_task_sequence_test_parallel() ->
     after
         stop_test_servers(ServerHandle, NodeOpts)
     end.
+
+wait_for_complete_task_sequence(Opts, 0) ->
+    get_state(Opts);
+wait_for_complete_task_sequence(Opts, Attempts) ->
+    case get_state(Opts) of
+        State = #state{} ->
+            case complete_task_sequence_done(State) of
+                true ->
+                    State;
+                false ->
+                    timer:sleep(50),
+                    wait_for_complete_task_sequence(Opts, Attempts - 1)
+            end;
+        _ ->
+            timer:sleep(50),
+            wait_for_complete_task_sequence(Opts, Attempts - 1)
+    end.
+
+complete_task_sequence_done(State) ->
+    Workers = State#state.workers,
+    AllIdle =
+        lists:all(
+            fun
+                ({_, idle}) -> true;
+                (_) -> false
+            end,
+            maps:to_list(Workers)
+        ),
+    AllIdle
+        andalso queue:is_empty(State#state.task_queue)
+        andalso maps:size(State#state.bundles) =:= 0.
 
 recover_bundles_test_parallel() ->
     Anchor = rand:bytes(32),
