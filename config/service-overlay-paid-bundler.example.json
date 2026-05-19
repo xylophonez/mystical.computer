@@ -1,0 +1,24 @@
+{
+  "service-overlay": true,
+  "service-overlay-paid-bundler": true,
+  "service-overlay-bundler-settlement": true,
+  "simple-pay-price": 0,
+  "arweave-byte-price": "dynamic",
+  "metering-rates": {
+    "beam-reductions": 0
+  },
+  "bundler-ans104": "https://up.arweave.net:443",
+  "on": {
+    "start": [
+      {
+        "device": "service-overlay@1.0",
+        "path": "start"
+      }
+    ],
+    "request": [
+      {
+        "device": "manifest@1.0"
+      }
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "service-overlay": true,
+  "simple-pay-price": 0,
+  "router-opts": {
+    "offered": [
+      {
+        "template": "/~whisper@1.0/.*",
+        "price": 1000000000000
+      }
+    ]
+  },
+  "on": {
+    "start": [
+      {
+        "device": "service-overlay@1.0",
+        "path": "start"
+      }
+    ],
+    "request": [
+      {
+        "device": "manifest@1.0"
+      }
+    ]
+  }
+}
