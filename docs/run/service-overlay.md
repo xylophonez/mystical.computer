@@ -3,7 +3,9 @@
 `service-overlay@1.0` is the generic AO/P4 paid-route pack for a HyperBEAM
 service node. It is meant to be composed with feature branches such as
 `feat/dev-whisper`: merge the overlay branch and the device branch, then price
-the route you want to sell.
+the route you want to sell. Fixed route prices can use `router-opts/offered`;
+work-unit pricing uses `service-overlay-pricing-routes` to hand selected routes
+to `metering@1.0` or another pricing device.
 
 ## Devices
 
@@ -25,19 +27,22 @@ replacements.
 ## Minimal Paid Whisper Config
 
 Use this after composing `service-overlay` with a branch that provides
-`whisper@1.0`.
+`whisper@1.0`. This charges by fetched input size, not by a flat route price.
 
 ```json
 {
   "service-overlay": true,
   "simple-pay-price": 0,
-  "router-opts": {
-    "offered": [
-      {
-        "template": "/~whisper@1.0/.*",
-        "price": 1000000000000
-      }
-    ]
+  "service-overlay-pricing-routes": [
+    {
+      "template": "/~whisper@1.0/.*",
+      "pricing-device": "metering@1.0"
+    }
+  ],
+  "metering-rates": {
+    "media-input-bytes": 1,
+    "whisper-input-bytes": 0,
+    "beam-reductions": 0
   },
   "on": {
     "start": [
@@ -50,14 +55,63 @@ Use this after composing `service-overlay` with a branch that provides
 }
 ```
 
-`price` is denominated in AO base units. `simple-pay-price` is set to `0` so
-only explicitly offered routes are charged.
+Rates are denominated in AO base units. `media-input-bytes` is the shared
+counter for fetched media payload size; `whisper-input-bytes` lets an operator
+add a Whisper-specific surcharge or discount without changing the shared media
+rate. `simple-pay-price` is set to `0` so only explicitly routed pricing
+devices charge.
 
 At startup, the overlay creates or reuses a local process ledger named `ledger`,
 sets `ao-payment-deposit-address` to the node wallet by default, and replaces
 the request hook with its P4 wrapper. If a manifest request hook is already
 configured, the overlay folds it into that wrapper so plain transaction reads
 continue to work.
+
+## Media-Ingest Metering
+
+Use file size as the baseline metering unit for media-ingest devices. It is the
+stable pre-work quantity both the node and caller can reason about, and it maps
+cleanly across Whisper transcription, FFmpeg transcoding, and future media
+devices.
+
+Current media counters:
+
+- `media-input-bytes`: shared input-byte counter emitted by media ingest
+  devices.
+- `whisper-input-bytes`: Whisper-specific input-byte counter.
+- `ffmpeg-input-bytes`: FFmpeg-specific input-byte counter.
+
+For uniform media pricing, set only `media-input-bytes` and leave the
+device-specific counters at `0`. For device-specific pricing, set both the
+shared counter and the device counter. `metering@1.0/estimate` currently starts
+at `0` and `metering@1.0/price` returns the exact post-execution amount after
+the device records consumed units, so public deployments should combine this
+with funded balances or a future preflight estimator.
+
+Example for both Whisper and FFmpeg:
+
+```json
+{
+  "service-overlay": true,
+  "simple-pay-price": 0,
+  "service-overlay-pricing-routes": [
+    {
+      "template": "/~whisper@1.0/.*",
+      "pricing-device": "metering@1.0"
+    },
+    {
+      "template": "/~ffmpeg-audio@1.0/.*",
+      "pricing-device": "metering@1.0"
+    }
+  ],
+  "metering-rates": {
+    "media-input-bytes": 1,
+    "whisper-input-bytes": 0,
+    "ffmpeg-input-bytes": 0,
+    "beam-reductions": 0
+  }
+}
+```
 
 ## Funding Flow
 
@@ -117,3 +171,5 @@ the metered bundle cost after the bundle completes.
 - `ao-payment-mainnet-url`: AO state endpoint used for payment verification.
 - `service-overlay-pricing-routes`: explicit `pricing-router@1.0` route list
   for dynamic pricing devices such as `metering@1.0`.
+- `metering-rates`: AO base-unit rates used by `metering@1.0`; media ingest
+  devices emit `media-input-bytes` plus a device-specific byte counter.
